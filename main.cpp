@@ -1,73 +1,98 @@
 #include <iostream>
-#include <string>
-#include <unordered_map>
+#include <map>
+#include <unordered_set>
+#include <vector>
 
+template <typename State, typename Alphabet>
 class FiniteAutomaton {
 private:
-    std::unordered_map<char, int> transitions;
-    std::string substring;
+private:
+    struct PairComparator {
+        template <class T1, class T2>
+        bool operator()(const std::pair<T1, T2>& lhs, const std::pair<T1, T2>& rhs) const {
+            return lhs < rhs;
+        }
+    };
+
+    std::map<std::pair<State, Alphabet>, State, PairComparator> transitions;
+    std::unordered_set<State> acceptingStates;
+    State currentState;
 
 public:
-    FiniteAutomaton(const std::string& substring) : substring(substring) {
-        int currentState = 0;
+    FiniteAutomaton(const std::vector<State>& states,
+        const std::vector<Alphabet>& alphabet,
+        const std::map<std::pair<State, Alphabet>, State, PairComparator>& transitions,
+        const std::unordered_set<State>& acceptingStates,
+        const State& initialState)
+        : transitions(transitions), acceptingStates(acceptingStates), currentState(initialState) {}
 
-        for (char ch : substring) {
-            transitions[ch] = currentState++;
+    void processInput(const Alphabet& input) {
+        auto it = transitions.find({ currentState, input });
+        if (it != transitions.end()) {
+            currentState = it->second;
+        }
+        else {
+            currentState = 0;
         }
     }
 
-    void processInput(const std::string& input) {
-        int currentState = 0;
-        bool substringFound = false;
+    void updateTransitions(const std::pair<State, Alphabet>& key, const State& value) {
+        transitions[key] = value;
+    }
+
+    bool isAcceptingState() const {
+        return acceptingStates.find(currentState) != acceptingStates.end();
+    }
+
+    void reset() {
+        currentState = 0; 
+    }
+};
+
+class SubstringSearch {
+private:
+    FiniteAutomaton<int, char> automaton;
+
+public:
+    SubstringSearch(const std::string& substring)
+        : automaton({ 0, 1 }, {}, {}, { static_cast<int>(substring.length()) }, 0) {
+        for (size_t i = 0; i < substring.length(); ++i) {
+            automaton.processInput(substring[i]);
+            automaton.updateTransitions({ static_cast<int>(i), substring[i] }, i + 1);
+        }
+    }
+
+    bool searchSubstring(const std::string& input) {
+        automaton.reset();
 
         for (char ch : input) {
-            auto it = transitions.find(ch);
-
-            if (it != transitions.end()) {
-                currentState = it->second + 1;
-            }
-            else {
-                currentState = 0;
-            }
-
-            if (currentState == substring.length()) {
-                std::cout << "All characters in the substring are contained in the string.\n" << std::endl;
-                substringFound = true;
-                break;
+            automaton.processInput(ch);
+            if (automaton.isAcceptingState()) {
+                std::cout << "The substring is found!" << std::endl;
+                return true;
             }
         }
 
-        if (!substringFound) {
-            std::cout << "Not all characters in a substring are contained in the string.\n" << std::endl;
-        }
+        std::cout << "The substring is not found." << std::endl;
+        return false;
     }
 };
 
 int main() {
-    std::cout << "Sample: \n";
-
-    std::string substring1 = "abc";
-    std::string inputString1 = "ababc";
-
-    FiniteAutomaton automaton1(substring1);
-
-    std::cout << "\nSubstring to search: " << substring1 << std::endl;
-    std::cout << "Input string: " << inputString1 << std::endl;
-
-    automaton1.processInput(inputString1);
-
-    std::string inputString, substring;
-    std::cout << "Enter the input string: ";
-    std::getline(std::cin, inputString);
+    std::string substring, inputString;
     std::cout << "Enter the substring: ";
     std::cin >> substring;
 
-    FiniteAutomaton automaton(substring);
+    SubstringSearch substringSearch(substring);
 
-    automaton.processInput(inputString);
+    std::cout << "Enter the input string: ";
+    std::cin >> inputString;
+
+    substringSearch.searchSubstring(inputString);
 
     return 0;
 }
+
 
 
 
