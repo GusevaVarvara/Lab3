@@ -6,7 +6,6 @@
 template <typename State, typename Alphabet>
 class FiniteAutomaton {
 private:
-private:
     struct PairComparator {
         template <class T1, class T2>
         bool operator()(const std::pair<T1, T2>& lhs, const std::pair<T1, T2>& rhs) const {
